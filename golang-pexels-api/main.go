@@ -22,7 +22,12 @@ func NewClient(token string) *Client {
 	return &Client{Token: token, hc: c}
 }
 
-type Search struct {
+// func (c *Client) SearchPhotos(query string, perPage, page int) (*SearchResult, error) {
+// 	url := fmt.Sprintf(PhotoApi+"/search?query%d&per_page%d&page%d", query, perPage, page)
+// 	res, err := c.hc.do
+// }
+
+type SearchResult struct {
 	Page         int32   `json:"page"`
 	PerPage      int32   `json:"per_page"`
 	TotalResults int32   `json:"total_results"`
@@ -36,8 +41,8 @@ type Photo struct {
 	Height          int32       `json:"height"`
 	Url             string      `json:"url"`
 	Photographer    string      `json:"photographer"`
-	ProtographerURL string      `json:"protographer_url`
-	src             PhotoSource `json:"src"`
+	ProtographerURL string      `json:"protographer_url"`
+	Src             PhotoSource `json:"src"`
 }
 
 type PhotoSource struct {
@@ -58,7 +63,7 @@ func main() {
 
 	var c = NewClient(TOKEN)
 
-	result, err := c.SearchPhotos("waves")
+	result, err := c.SearchPhotos("waves", 15, 1)
 	if err != nil {
 		fmt.Errorf("search error %v", err)
 	}
