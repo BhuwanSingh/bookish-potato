@@ -18,21 +18,27 @@ import (
 )
 
 type templateHandler struct {
-	once     sync.Once
-	filename string
-	templ    *template.Template
+	once     sync.Once          // ensures that the template is only parsed once
+	filename string             // stores the name of the HTML file
+	templ    *template.Template // holds the parsed template
 }
 
 func (t *templateHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	t.once.Do(func() {
+		// Must is a helper that wraps a call to a function returning (*Template, error) and panics if the error is non-nil.
+		// It is intended for use in variable initializations such as
 		t.templ = template.Must(template.ParseFiles(filepath.Join("../templates", t.filename)))
 	})
+	// holds the template Data, including the request HOST.
 	data := map[string]interface{}{
 		"Host": r.Host,
 	}
+	// finds the cookie with "auth"
+	// If found, extracts user data and decodes it.
 	if authCookie, err := r.Cookie("auth"); err == nil {
 		data["UserData"] = objx.MustFromBase64(authCookie.Value)
 	}
+	// renders the template with the data.
 	t.templ.Execute(w, data)
 }
 
@@ -55,7 +61,7 @@ func main() {
 	gomniauth.WithProviders(
 		facebook.New("key", "secret", "http://localhost:8080/auth/callback/facebook"),
 		github.New("key", "secret", "http://localhost:8080/auth/callback/github"),
-		google.New("googleKey", "googleSecret", "http://localhost:8080/auth/callback/google"),
+		google.New(googleKey, googleSecret, "http://localhost:8080/auth/callback/google"),
 	)
 	r := newRoom()
 	// r.tracer = trace.New(os.Stdout)
@@ -63,6 +69,16 @@ func main() {
 	http.Handle("/login", &templateHandler{filename: "login.html"})
 	http.HandleFunc("/auth/", loginHandler)
 	http.Handle("/room", r)
+	http.HandleFunc(("/logout"), func(w http.ResponseWriter, r *http.Request) {
+		http.SetCookie(w, &http.Cookie{
+			Name:   "auth",
+			Value:  "",
+			Path:   "/",
+			MaxAge: -1,
+		})
+		w.Header().Set("Location", "/chat")
+		w.WriteHeader(http.StatusTemporaryRedirect)
+	})
 	go r.run()
 	if err := http.ListenAndServe(*addr, nil); err != nil {
 		log.Fatal("Could not start server at :8080", err)

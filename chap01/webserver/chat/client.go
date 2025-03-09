@@ -24,6 +24,9 @@ func (c *client) read() { // the read the message that the client has sent to th
 		}
 		msg.When = time.Now()
 		msg.Name = c.userData["name"].(string)
+		if avatarURL, ok := c.userData["avatar_url"]; ok {
+			msg.AvatarURL = avatarURL.(string)
+		}
 		c.room.forward <- msg // sending the message to the room on which there are other people.
 	}
 }

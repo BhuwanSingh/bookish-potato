@@ -9,14 +9,18 @@ import (
 	"github.com/stretchr/objx"
 )
 
+// a middleware to enfore the authtication.
+// next stores the next HTTP handler to call if the authentication is successful.
 type authHandler struct {
 	next http.Handler
 }
 
 func (h *authHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	_, err := r.Cookie("auth")
-	if err == http.ErrNoCookie {
-		// not authenticated.
+	// checks is the authentication cookie "auth" exists.
+	cookie, err := r.Cookie("auth")
+	// if the cookie is missing it redirects to /login.
+	if err == http.ErrNoCookie || cookie.Value == "" {
+		// not authenticated and is redirecting to the /login page.
 		w.Header().Set("Location", "/login")
 		w.WriteHeader(http.StatusTemporaryRedirect)
 		return
@@ -73,7 +77,8 @@ func loginHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		authCookieValue := objx.New(map[string]interface{}{
-			"name": user.Name(),
+			"name":       user.Name(),
+			"avatar_url": user.AvatarURL(),
 		}).MustBase64()
 		http.SetCookie(w, &http.Cookie{
 			Name:  "auth",
