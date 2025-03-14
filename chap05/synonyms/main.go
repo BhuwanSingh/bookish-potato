@@ -3,7 +3,7 @@ package main
 import (
 	"os"
 
-	"bookish-potato/chap05/thesaurus/thesaurus"
+	"github.com/BhuwanSingh/bookish-potato/chap05/thesaurus"
 )
 
 func main() {
