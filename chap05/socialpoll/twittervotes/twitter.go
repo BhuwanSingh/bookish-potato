@@ -103,30 +103,43 @@ func readFromTwitter(votes chan<- string) {
 		log.Println("failed to load options:", err)
 		return
 	}
-	u, err := url.Parse("http://stream.twitter.com/1.1/statuses/filter.json")
+
+	// Before connecting to the stream, update your stream rules
+	// For example, use a separate function to create or update your rules.
+	err = updateStreamRules(options)
 	if err != nil {
-		log.Println("creating filer request failed:", err)
+		log.Println("failed to update stream rules:", err)
 		return
 	}
-	query := make(url.Values)
-	query.Set("track", strings.Join(options, ","))
-	req, err := http.NewRequest("POST", u.String(), strings.NewReader(query.Encode()))
+
+	// Connect to the filtered stream using API v2 endpoint
+	u, err := url.Parse("https://api.twitter.com/2/tweets/search/stream")
 	if err != nil {
-		log.Println("creating filter request failed:", err)
+		log.Println("creating stream URL failed:", err)
 		return
 	}
-	resp, err := makeRequest(req, query)
+	req, err := http.NewRequest("GET", u.String(), nil)
+	if err != nil {
+		log.Println("creating stream request failed:", err)
+		return
+	}
+	// Set the required Bearer token for authentication
+	req.Header.Set("Authorization", "Bearer YOUR_BEARER_TOKEN")
+
+	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		log.Println("making request failed:", err)
 		return
 	}
-	reader := resp.Body
-	decoder := json.NewDecoder(reader)
+	defer resp.Body.Close()
+
+	decoder := json.NewDecoder(resp.Body)
 	for {
-		var t tweet
+		var t tweet // update your tweet struct as per API v2 response
 		if err := decoder.Decode(&t); err != nil {
 			break
 		}
+		// Process the tweet based on your options
 		for _, option := range options {
 			if strings.Contains(
 				strings.ToLower(t.Text),
